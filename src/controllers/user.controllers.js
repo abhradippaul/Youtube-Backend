@@ -92,6 +92,7 @@ const loginUser = async (req, res) => {
             })
         }
 
+        const options = { httpOnly: true, secure: true }
         const isTokenSavedInDB = await User.findByIdAndUpdate({
             _id: userInfo._id
         }, { refreshtoken: refreshToken })
@@ -100,11 +101,14 @@ const loginUser = async (req, res) => {
                 message: "Database error"
             })
         }
-        return res.status(200).cookie("accesstoken", accessToken, { httpOnly: true, secure : true }).json({
-            message: "Successful",
-            AccessToken: accessToken,
-            RefreshToken: refreshToken
-        })
+        return res.status(200)
+            .cookie("refreshtoken", refreshToken, options)
+            .cookie("accesstoken", accessToken, options)
+            .json({
+                message: "Successful",
+                AccessToken: accessToken,
+                RefreshToken: refreshToken
+            })
     } catch (err) {
         return res.status(401).json({
             ERROR: err.message,
@@ -113,8 +117,39 @@ const loginUser = async (req, res) => {
     }
 }
 
+const logoutUser = async (req, res) => {
+    try {
+        const { _id } = req.user
+        if (!_id) {
+            return res.status(401).json({
+                message: "id not found"
+            })
+        }
+        const isUpdated = await User.findByIdAndUpdate(_id, { refreshtoken: "" })
+        if (!isUpdated) {
+            return res.status(401).json({
+                message: "Database problem"
+            })
+        }
+        return res
+            .status(201)
+            .clearCookie("accesstoken")
+            .clearCookie("refreshtoken")
+            .json({
+                message: "You are logged out"
+            })
+
+    } catch (err) {
+        return res.status(404).json({
+            ERROR: err.message,
+            message: "Something went wrong"
+        })
+    }
+}
+
 
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    logoutUser
 }
