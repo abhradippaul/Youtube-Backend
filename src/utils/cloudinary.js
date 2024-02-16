@@ -13,10 +13,25 @@ const uploadCloudinary = async (localPath) => {
         }
         const data = await cloudinary.uploader.upload(localPath,
             { resource_type: "auto" })
-        return data.url
+            // console.log(data)
+        return { url: data.url, public_id: data.public_id }
+    } catch (err) {
+        // console.log(err)
+        return null
+    }
+}
+
+const deleteCloudinary = async (public_id) => {
+    try {
+        if (!public_id) {
+            return null
+        }
+        const data = await cloudinary.api.delete_resources([`${public_id}`])
+        return data
+
     } catch (err) {
         return null
     }
 }
 
-module.exports = uploadCloudinary
+module.exports = { uploadCloudinary, deleteCloudinary }

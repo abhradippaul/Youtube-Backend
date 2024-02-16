@@ -1,6 +1,6 @@
 const User = require("../models/user.models")
 const { passwordEncryption, checkPassword } = require("../utils/bcryptSecurity")
-const uploadCloudinary = require("../utils/cloudinary")
+const { uploadCloudinary, deleteCloudinary } = require("../utils/cloudinary")
 const { generateAccessToken, generateRefreshToken } = require("../utils/generateToken")
 
 const registerUser = async (req, res) => {
@@ -34,6 +34,7 @@ const registerUser = async (req, res) => {
         let coverImageUrl = ""
         if (coverImageLocalPath) {
             coverImageUrl = await uploadCloudinary(coverImageLocalPath)
+            // console.log(coverImageLocalPath)
         }
         if (!avatarUrl) {
             return res.status(501).json({
@@ -147,9 +148,129 @@ const logoutUser = async (req, res) => {
     }
 }
 
+const updateUser = async (req, res) => {
+    try {
+        const { fullname, email } = req.body
+        const { _id } = req.user
+        if (!fullname || !email) {
+            return res.status(404).json({
+                message: "Update info is required"
+            })
+        }
+        const updatedUser = await User.findByIdAndUpdate(_id, {
+            fullname,
+            email
+        })
+        if (!updatedUser) {
+            return res.status(404).json({
+                message: "Problem in user update"
+            })
+        }
+        return res.status(200).json({
+            message: "User update successful"
+        })
+
+    } catch (err) {
+        return res.status(404).json({
+            ERROR: err.message,
+            message: "Something went wrong"
+        })
+    }
+}
+
+const updateAvatar = async (req, res) => {
+    try {
+        const avatarLocalPath = req.file.path
+        const { _id } = req.user
+        const { avatar } = await User.findById(_id)
+        if (!avatar) {
+            return res.status(401).json({
+                message: "Avatar not found"
+            })
+        }
+        const isUpdated = await deleteCloudinary(avatar.public_id)
+        if (!isUpdated) {
+            return res.status(401).json({
+                message: "Cloudinary update is failed"
+            })
+        }
+
+        if (!avatarLocalPath) {
+            return res.status(401).json({
+                message: "Image is required"
+            })
+        }
+        const cloudinaryUrl = await uploadCloudinary(avatarLocalPath)
+        // console.log(cloudinaryUrl)
+
+        const updatedUser = await User.findByIdAndUpdate(_id, {
+            avatar: cloudinaryUrl
+        })
+        if (!updatedUser) {
+            return res.status(400).json({
+                message: "Avatar update is failed"
+            })
+        }
+        return res.status(200).json({
+            message: "Avatar is successfully updated"
+        })
+
+    } catch (err) {
+        return res.status(404).json({
+            ERROR: err.message,
+            message: "Something went wrong"
+        })
+    }
+}
+
+const updateCoverImage = async (req, res) => {
+    try {
+        const coverImageLocalPath = req.file.path
+        const { _id } = req.user
+        const { coverimage } = await User.findById(_id)
+        if (coverimage) {
+            const isUpdated = await deleteCloudinary(coverimage.public_id)
+            if (!isUpdated) {
+                return res.status(401).json({
+                    message: "Cloudinary update is failed"
+                })
+            }
+        }
+        if (!coverImageLocalPath) {
+            return res.status(401).json({
+                message: "Image is required"
+            })
+        }
+        const coverImageUrl = await uploadCloudinary(coverImageLocalPath)
+        // console.log(cloudinaryUrl)
+
+        const updatedUser = await User.findByIdAndUpdate(_id, {
+            coverimage: coverImageUrl
+        })
+        if (!updatedUser) {
+            return res.status(400).json({
+                message: "Avatar update is failed"
+            })
+        }
+        return res.status(200).json({
+            message: "Avatar is successfully updated"
+        })
+
+
+    } catch (err) {
+        return res.status(404).json({
+            ERROR: err.message,
+            message: "Something went wrong"
+        })
+    }
+}
+
 
 module.exports = {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    updateUser,
+    updateAvatar,
+    updateCoverImage
 }
